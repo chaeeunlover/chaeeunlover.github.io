@@ -141,8 +141,12 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 .chip.active{{background:var(--accent);color:#ffffff;border-color:var(--accent);}}
 .search{{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:10px 18px;font-size:14px;color:var(--text);width:220px;}}
 .search::placeholder{{color:var(--text-faint);}}
-.layout{{display:grid;grid-template-columns:360px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:680px;margin-bottom:64px;box-shadow:var(--shadow);}}
+.layout{{display:grid;grid-template-columns:360px 6px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:680px;margin-bottom:64px;box-shadow:var(--shadow);}}
 .list-pane{{border-right:1px solid var(--border);max-height:800px;overflow-y:auto;background:var(--bg-2);}}
+.pane-resizer{{background:var(--border);cursor:col-resize;position:relative;}}
+.pane-resizer::after{{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:36px;border-radius:2px;background:var(--text-faint);opacity:.5;}}
+.pane-resizer:hover::after,.pane-resizer.dragging::after{{opacity:1;background:var(--accent);}}
+@media (max-width:760px){{ .pane-resizer{{display:none;}} }}
 .list-item{{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 20px;cursor:pointer;border-bottom:1px solid var(--border);}}
 .list-item:hover{{background:var(--surface-2);}}
 .list-item.active{{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--accent);}}
@@ -184,6 +188,9 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 .stat-row{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px;padding-top:22px;border-top:1px solid var(--border);}}
 .stat-row .k{{font-size:12.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}}
 .stat-row .v{{font-size:21px;font-weight:800;}}
+.stat-row .note{{font-size:11px;color:var(--text-faint);margin-top:5px;font-weight:600;}}
+.desc-box{{font-size:14.5px;color:var(--text-muted);line-height:1.75;margin:16px 0 2px;padding:16px 18px;background:var(--surface-2);border-radius:10px;}}
+.desc-box:empty{{display:none;}}
 .tag-row{{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}}
 .tag-badge{{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);}}
 .tag-badge.dow{{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}}
@@ -388,6 +395,7 @@ footer .shell{{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12p
 
     <div class="layout">
       <div class="list-pane" id="list-pane"></div>
+      <div class="pane-resizer" id="pane-resizer" title="드래그해서 폭 조절"></div>
       <div class="chart-pane">
         <div class="chart-head">
           <div>
@@ -400,6 +408,7 @@ footer .shell{{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12p
             <div class="chg num" id="c-chg">-</div>
           </div>
         </div>
+        <div class="desc-box" id="c-desc"></div>
         <div class="period-row" id="period-row">
           <div class="period-chip" data-n="22">1개월</div>
           <div class="period-chip" data-n="65">3개월</div>
@@ -419,10 +428,20 @@ footer .shell{{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12p
         <canvas id="volume"></canvas>
         <div class="hint">마우스 휠로 확대·축소, 드래그로 좌우 이동할 수 있어요 (더블클릭하면 원래대로). 차트에 마우스를 올리면 실제 값이 보여요. MA20·MA60·거래량은 위 버튼으로 켜고 끌 수 있어요.</div>
         <div class="stat-row">
-          <div><div class="k">PER</div><div class="v num" id="s-per">-</div></div>
+          <div><div class="k">PER</div><div class="v num" id="s-per">-</div><div class="note" id="s-per-note"></div></div>
           <div><div class="k">배당수익률</div><div class="v num" id="s-div">-</div></div>
           <div><div class="k">시장</div><div class="v" id="s-market">-</div></div>
           <div><div class="k">기간 수익률</div><div class="v num" id="s-range">-</div></div>
+        </div>
+        <div class="stat-row" id="extra-stats">
+          <div><div class="k">52주 최고</div><div class="v num" id="s-w52h">-</div></div>
+          <div><div class="k">52주 최저</div><div class="v num" id="s-w52l">-</div></div>
+          <div><div class="k">PBR</div><div class="v num" id="s-pbr">-</div></div>
+          <div><div class="k">ROE</div><div class="v num" id="s-roe">-</div></div>
+        </div>
+        <div class="stat-row" id="analyst-stats">
+          <div><div class="k">목표주가(평균)</div><div class="v num" id="s-target">-</div></div>
+          <div><div class="k">투자의견</div><div class="v" id="s-reco">-</div></div>
         </div>
         <div class="news-section" id="c-news"></div>
       </div>
@@ -1098,6 +1117,27 @@ function renderChart(){{
   document.getElementById("s-div").textContent = current.div_yield ? current.div_yield+"%" : "-";
   document.getElementById("s-market").textContent = MARKET_LABEL[current.market];
 
+  let perNote = "";
+  if(current.market === "us" && current.per && current.sector){{
+    const peers = UNIVERSE.filter(s => s.market==="us" && s.sector===current.sector && s.per && s.t!==current.t);
+    if(peers.length >= 3){{
+      const avg = peers.reduce((s,x)=>s+x.per,0) / peers.length;
+      const diffPct = ((current.per - avg) / avg) * 100;
+      const rel = diffPct <= -15 ? "낮음" : diffPct >= 15 ? "높음" : "비슷";
+      perNote = `${{current.sector}} 업종 평균 ${{avg.toFixed(1)}}배 대비 ${{rel}} (${{diffPct>=0?'+':''}}${{diffPct.toFixed(0)}}%)`;
+    }}
+  }}
+  document.getElementById("s-per-note").textContent = perNote;
+
+  document.getElementById("s-w52h").textContent = current.w52h ? unit + current.w52h.toLocaleString(undefined,{{maximumFractionDigits:2}}) : "-";
+  document.getElementById("s-w52l").textContent = current.w52l ? unit + current.w52l.toLocaleString(undefined,{{maximumFractionDigits:2}}) : "-";
+  document.getElementById("s-pbr").textContent = current.pbr ? current.pbr+"배" : "-";
+  document.getElementById("s-roe").textContent = current.roe!=null ? current.roe+"%" : "-";
+  document.getElementById("s-target").textContent = current.target ? unit + current.target.toLocaleString(undefined,{{maximumFractionDigits:2}}) : "-";
+  document.getElementById("s-reco").textContent = current.reco ? current.reco + (current.analysts?` (애널리스트 ${{current.analysts}}명)`:'') : "-";
+
+  document.getElementById("c-desc").textContent = current.desc || "";
+
   const tags = [];
   if(current.sector) tags.push(`<span class="tag-badge">${{current.sector}}</span>`);
   if(current.industry && current.industry !== current.sector) tags.push(`<span class="tag-badge">${{current.industry}}</span>`);
@@ -1215,6 +1255,27 @@ renderEtfGrid();
 renderList();
 renderChart();
 window.addEventListener("resize", () => {{ drawCandles(lastBars, -1); drawVolume(lastBars); }});
+
+// ---- 리스트/차트 패널 폭 조절(드래그) ----
+(function(){{
+  const layout = document.querySelector(".layout");
+  const resizer = document.getElementById("pane-resizer");
+  let resizing = false;
+  resizer.addEventListener("mousedown", (e) => {{
+    resizing = true; resizer.classList.add("dragging"); e.preventDefault();
+  }});
+  window.addEventListener("mousemove", (e) => {{
+    if(!resizing) return;
+    const rect = layout.getBoundingClientRect();
+    const w = Math.max(240, Math.min(560, e.clientX - rect.left));
+    layout.style.gridTemplateColumns = w + "px 6px 1fr";
+    drawCandles(lastBars, -1);
+    drawVolume(lastBars);
+  }});
+  window.addEventListener("mouseup", () => {{
+    if(resizing){{ resizing = false; resizer.classList.remove("dragging"); }}
+  }});
+}})();
 </script>
 """
 

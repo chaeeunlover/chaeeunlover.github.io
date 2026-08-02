@@ -120,6 +120,25 @@ INDUSTRY_KO = {
 }
 
 
+RECO_KO = {
+    "strong_buy": "적극 매수", "buy": "매수", "hold": "보유",
+    "underperform": "비중 축소", "sell": "매도",
+}
+
+
+def build_desc(info):
+    summary = info.get("longBusinessSummary") or ""
+    if not summary:
+        return ""
+    # 문장 단위로 앞부분만 잘라서 번역 (너무 길면 무료 번역 엔드포인트가 불안정해짐)
+    cut = summary[:320]
+    if len(summary) > 320:
+        last_period = cut.rfind(". ")
+        if last_period > 80:
+            cut = cut[:last_period + 1]
+    return to_korean(cut)
+
+
 def build_news(ticker):
     try:
         items = yf.Ticker(ticker).news or []
@@ -183,14 +202,24 @@ def fetch_one(ticker, market):
             "cap": float(cap),
             "bars": bars,
         }
+        if market in ("us", "kr"):
+            row["news"] = build_news(ticker)
+            row["desc"] = build_desc(info)
+            row["w52h"] = float(info.get("fiftyTwoWeekHigh") or 0) or None
+            row["w52l"] = float(info.get("fiftyTwoWeekLow") or 0) or None
+            pbr = info.get("priceToBook")
+            row["pbr"] = round(float(pbr), 2) if pbr else None
+            roe = info.get("returnOnEquity")
+            row["roe"] = round(float(roe) * 100, 1) if roe else None
+            target = info.get("targetMeanPrice")
+            row["target"] = round(float(target), 2) if target else None
+            row["reco"] = RECO_KO.get(info.get("recommendationKey"), None)
+            row["analysts"] = info.get("numberOfAnalystOpinions") or None
         if market == "us":
             row["alias"] = US_ALIAS.get(ticker, "")
             row["sector"] = SECTOR_KO.get(sector_en, sector_en)
             row["industry"] = INDUSTRY_KO.get(industry_en, industry_en)
             row["dow30"] = ticker in DOW30
-            row["news"] = build_news(ticker)
-        elif market == "kr":
-            row["news"] = build_news(ticker)
         return row
     except Exception as e:
         print(f"  실패: {ticker} ({e})")
