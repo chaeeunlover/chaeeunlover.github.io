@@ -29,12 +29,13 @@ ETFS_JSON = json.dumps(ETFS, ensure_ascii=False)
 HTML = f"""<title>StockPulse</title>
 <style>
 :root{{
-  --bg:#0b0d13; --bg-2:#0f1118; --surface:#171b24; --surface-2:#212633; --border:#2c3242;
-  --text:#f3f5f8; --text-muted:#a2acbd; --text-faint:#606a7d;
-  --accent:#ff8a3d; --accent-dim:#4a2e18;
-  --accent-2:#5fd0c2; --accent-3:#b18cff;
-  --up:#ff4d5e; --down:#4a90ff; --good:#29d398; --warn:#ffb238;
-  --radius:14px; --shadow:0 10px 28px -10px rgba(0,0,0,.55); color-scheme: dark;
+  --bg:#f5f6f8; --bg-2:#eceef2; --surface:#ffffff; --surface-2:#f1f3f6; --border:#e2e5ec;
+  --text:#14161c; --text-muted:#565f6e; --text-faint:#8a93a3;
+  --accent:#e8660c; --accent-dim:#ffe4cc;
+  --accent-2:#0f9488; --accent-3:#7c5cdb;
+  --up:#e0374a; --down:#2f6fe0; --good:#16a34a; --warn:#c2740a;
+  --us-up:#16a34a; --us-down:#e0374a;
+  --radius:14px; --shadow:0 4px 18px -8px rgba(20,22,30,.12); color-scheme: light;
 }}
 *{{box-sizing:border-box;}}
 html,body{{margin:0;padding:0;background:var(--bg);}}
@@ -44,22 +45,23 @@ body{{
 }}
 .num{{font-family:ui-monospace,"Consolas","SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}}
 a{{color:inherit;text-decoration:none;}}
-::selection{{background:var(--accent);color:#1a1005;}}
+::selection{{background:var(--accent);color:#fff;}}
 .shell{{max-width:1200px;margin:0 auto;padding:0 28px;position:relative;}}
 .up{{color:var(--up);}} .down{{color:var(--down);}}
+.up-us{{color:var(--us-up);}} .down-us{{color:var(--us-down);}}
 .eyebrow{{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}}
 .eyebrow::before{{content:"";width:16px;height:2px;background:var(--accent);display:inline-block;}}
 #view-etf .eyebrow{{color:var(--accent-3);}}
 #view-etf .eyebrow::before{{background:var(--accent-3);}}
 
-header{{position:sticky;top:0;z-index:30;background:rgba(11,13,19,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}}
+header{{position:sticky;top:0;z-index:30;background:rgba(245,246,248,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);}}
 header .shell{{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;}}
 .brand{{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.01em;}}
 .brand .dot{{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}}
 nav{{display:flex;gap:6px;font-size:15px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:5px;}}
 nav a{{padding:9px 20px;border-radius:999px;font-weight:600;cursor:pointer;}}
 nav a:hover{{color:var(--text);}}
-nav a.active{{background:var(--accent);color:#1a1005;}}
+nav a.active{{background:var(--accent);color:#ffffff;}}
 .ig-btn{{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:999px;}}
 
 .view{{display:none;position:relative;}}
@@ -88,12 +90,10 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 .tick .c{{font-size:14px;font-weight:700;}}
 .callout{{border-radius:var(--radius);margin-bottom:40px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--border);}}
 .callout .callout-inner{{display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap;padding:32px 34px;}}
-.callout .callout-inner.up-bg{{background:linear-gradient(120deg,rgba(255,77,94,.16),rgba(255,138,61,.05) 60%);}}
-.callout .callout-inner.down-bg{{background:linear-gradient(120deg,rgba(74,144,255,.16),rgba(95,208,194,.05) 60%);}}
 .callout .cb-left{{flex:1;min-width:240px;}}
 .callout .cb-k{{font-size:13px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}}
-.callout .cb-ticker{{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1;}}
-.callout .cb-name{{font-size:14px;color:var(--text-faint);margin:7px 0 12px;}}
+.callout .cb-name{{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.15;}}
+.callout .cb-ticker{{font-size:14px;color:var(--text-faint);margin:6px 0 12px;letter-spacing:.02em;}}
 .callout .cb-chg{{font-size:23px;font-weight:800;margin-bottom:14px;}}
 .callout .cb-desc{{margin:0;font-size:15.5px;color:var(--text-muted);line-height:1.7;max-width:480px;}}
 .callout .cb-chart{{width:260px;height:110px;flex-shrink:0;}}
@@ -115,7 +115,7 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 #heatmap-us{{height:460px;}}
 #heatmap-kr{{height:240px;}}
 #heatmap-crypto{{height:140px;}}
-.hm-cell{{position:absolute;box-sizing:border-box;border:1px solid rgba(11,13,19,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:filter .12s;text-align:center;}}
+.hm-cell{{position:absolute;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:filter .12s;text-align:center;}}
 .hm-cell:hover{{filter:brightness(1.22);}}
 .hm-cell .t{{font-weight:800;font-family:ui-monospace,Consolas,monospace;line-height:1.2;color:#fff;}}
 .hm-cell .c{{font-family:ui-monospace,Consolas,monospace;opacity:.92;line-height:1.2;color:#fff;}}
@@ -138,7 +138,7 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 .chip-group{{display:flex;gap:10px;flex-wrap:wrap;}}
 .chip{{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text-muted);}}
 .chip:hover{{color:var(--text);}}
-.chip.active{{background:var(--accent);color:#1a1005;border-color:var(--accent);}}
+.chip.active{{background:var(--accent);color:#ffffff;border-color:var(--accent);}}
 .search{{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:10px 18px;font-size:14px;color:var(--text);width:220px;}}
 .search::placeholder{{color:var(--text-faint);}}
 .layout{{display:grid;grid-template-columns:360px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:680px;margin-bottom:64px;box-shadow:var(--shadow);}}
@@ -162,16 +162,16 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 .period-row{{display:flex;gap:8px;margin-top:18px;}}
 .period-chip{{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text-muted);}}
 .period-chip:hover{{color:var(--text);}}
-.period-chip.active{{background:var(--accent);color:#1a1005;border-color:var(--accent);}}
+.period-chip.active{{background:var(--accent);color:#ffffff;border-color:var(--accent);}}
 .indicator-row{{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}}
 .ind-chip{{display:inline-flex;align-items:center;gap:7px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--text-faint);}}
 .ind-chip .dot{{width:8px;height:8px;border-radius:50%;flex-shrink:0;opacity:.35;}}
 .ind-chip.active{{color:var(--text);border-color:var(--text-faint);}}
 .ind-chip.active .dot{{opacity:1;}}
-.ind-chip[data-ind="ma20"] .dot{{background:#ff8a3d;}}
-.ind-chip[data-ind="ma60"] .dot{{background:#5fd0c2;}}
-.ind-chip[data-ind="ma120"] .dot{{background:#b18cff;}}
-.ind-chip[data-ind="vol"] .dot{{background:#9aa4b8;}}
+.ind-chip[data-ind="ma20"] .dot{{background:#e8660c;}}
+.ind-chip[data-ind="ma60"] .dot{{background:#0f9488;}}
+.ind-chip[data-ind="ma120"] .dot{{background:#7c5cdb;}}
+.ind-chip[data-ind="vol"] .dot{{background:#8a93a3;}}
 .chart-wrap{{position:relative;margin-top:16px;}}
 #candles{{width:100%;height:400px;display:block;cursor:crosshair;}}
 #volume{{width:100%;height:76px;display:block;margin-top:6px;}}
@@ -184,6 +184,17 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 .stat-row{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px;padding-top:22px;border-top:1px solid var(--border);}}
 .stat-row .k{{font-size:12.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}}
 .stat-row .v{{font-size:21px;font-weight:800;}}
+.tag-row{{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}}
+.tag-badge{{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);}}
+.tag-badge.dow{{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}}
+.news-section{{margin-top:24px;padding-top:22px;border-top:1px solid var(--border);}}
+.news-section .k{{font-size:12.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;}}
+.news-item{{display:block;padding:12px 0;border-top:1px solid var(--border);}}
+.news-item:first-of-type{{border-top:none;padding-top:0;}}
+.news-item .title{{font-size:14.5px;font-weight:600;color:var(--text);line-height:1.5;}}
+.news-item:hover .title{{color:var(--accent);}}
+.news-item .meta{{font-size:12px;color:var(--text-faint);margin-top:4px;}}
+.news-empty{{color:var(--text-faint);font-size:13.5px;}}
 
 /* ETF 허브 */
 #view-etf .prose{{max-width:700px;}}
@@ -255,9 +266,9 @@ p.lede{{font-size:18px;color:var(--text-muted);max-width:640px;}}
 #view-etf .snap-card{{cursor:pointer;}}
 
 /* ETF 상세 모달 */
-.etf-modal-backdrop{{position:fixed;inset:0;background:rgba(6,7,10,.72);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}}
+.etf-modal-backdrop{{position:fixed;inset:0;background:rgba(20,22,30,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}}
 .etf-modal-backdrop.active{{display:flex;}}
-.etf-modal{{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:520px;width:100%;max-height:84vh;overflow-y:auto;padding:34px;box-shadow:0 24px 60px -12px rgba(0,0,0,.6);}}
+.etf-modal{{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:520px;width:100%;max-height:84vh;overflow-y:auto;padding:34px;box-shadow:0 24px 60px -12px rgba(20,22,30,.28);}}
 .etf-modal-close{{position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;}}
 .etf-modal-close:hover{{color:var(--text);}}
 .etf-modal .tag{{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.05em;color:var(--accent-3);text-transform:uppercase;margin-bottom:12px;}}
@@ -372,7 +383,7 @@ footer .shell{{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12p
         <div class="chip" data-sort="chgasc">급락순</div>
         <div class="chip" data-sort="alpha">이름순</div>
       </div>
-      <input class="search" id="search" placeholder="티커·이름 검색">
+      <input class="search" id="search" placeholder="티커·회사명 검색 (한글도 가능, 예: 애플)">
     </div>
 
     <div class="layout">
@@ -382,6 +393,7 @@ footer .shell{{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12p
           <div>
             <h3 id="c-name">-</h3>
             <div class="sub" id="c-sub">-</div>
+            <div class="tag-row" id="c-tags"></div>
           </div>
           <div>
             <div class="price num" id="c-price">-</div>
@@ -412,6 +424,7 @@ footer .shell{{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12p
           <div><div class="k">시장</div><div class="v" id="s-market">-</div></div>
           <div><div class="k">기간 수익률</div><div class="v num" id="s-range">-</div></div>
         </div>
+        <div class="news-section" id="c-news"></div>
       </div>
     </div>
   </div>
@@ -592,6 +605,12 @@ const ETFS = {ETFS_JSON};
 const MARKET_LABEL = {{us:"미국", kr:"한국", crypto:"코인"}};
 const CAT_KO = {{broad:"시장 전체형", sector:"섹터형", dividend:"배당형", thematic:"테마형", commodity:"원자재형", bond:"채권형"}};
 
+// ---- 색상 관례: 한국은 빨강=상승/파랑=하락, 미국·코인·ETF는 초록=상승/빨강=하락 ----
+const US_UP = "#16a34a", US_DOWN = "#e0374a";
+const KR_UP = "#e0374a", KR_DOWN = "#2f6fe0";
+function dirColor(chg, market){{ return market === "kr" ? (chg>=0?KR_UP:KR_DOWN) : (chg>=0?US_UP:US_DOWN); }}
+function dirClass(chg, market){{ return market === "kr" ? (chg>=0?"up":"down") : (chg>=0?"up-us":"down-us"); }}
+
 // ---- 탭 전환 ----
 function showView(id){{
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
@@ -610,24 +629,24 @@ document.querySelectorAll("[data-goto]").forEach(el => {{
   }});
 }});
 
-function fmtChg(v, digits=2){{
+function fmtChg(v, digits=2, market="us"){{
   const sign = v >= 0 ? "+" : "";
-  return `<span class="num ${{v>=0?'up':'down'}}">${{sign}}${{v.toFixed(digits)}}%</span>`;
+  return `<span class="num ${{dirClass(v, market)}}">${{sign}}${{v.toFixed(digits)}}%</span>`;
 }}
 
 // ---- 홈: 히어로 지수 ----
 document.getElementById("hero-idx").innerHTML = MARKET.indices.map(i => `
   <div class="card">
     <div class="k">${{i.label}}</div>
-    <div class="v num ${{i.chg_pct>=0?'up':'down'}}">${{i.price.toLocaleString(undefined,{{maximumFractionDigits:2}})}}</div>
+    <div class="v num ${{dirClass(i.chg_pct,"us")}}">${{i.price.toLocaleString(undefined,{{maximumFractionDigits:2}})}}</div>
     <div class="chgline">
-      <span class="c num ${{i.chg_pct>=0?'up':'down'}}">${{i.chg_pct>=0?'+':''}}${{i.chg_pct.toFixed(2)}}%</span>
+      <span class="c num ${{dirClass(i.chg_pct,"us")}}">${{i.chg_pct>=0?'+':''}}${{i.chg_pct.toFixed(2)}}%</span>
       <canvas class="idx-spark" data-code="${{i.code}}"></canvas>
     </div>
   </div>`).join("");
 document.querySelectorAll(".idx-spark").forEach(cv => {{
   const idx = MARKET.indices.find(i => i.code === cv.dataset.code);
-  if(idx && idx.intraday && idx.intraday.length > 1) drawMiniInline(cv, idx.intraday, idx.chg_pct>=0?"#ff4d5e":"#4a90ff");
+  if(idx && idx.intraday && idx.intraday.length > 1) drawMiniInline(cv, idx.intraday, dirColor(idx.chg_pct,"us"));
 }});
 
 document.getElementById("ticker-strip").innerHTML = [
@@ -639,19 +658,20 @@ document.getElementById("ticker-strip").innerHTML = [
 
 const mover = UNIVERSE.slice().sort((a,b)=>Math.abs(b.chg)-Math.abs(a.chg))[0];
 const worstSec = MARKET.sector_perf[MARKET.sector_perf.length-1], bestSec = MARKET.sector_perf[0];
+const moverColor = dirColor(mover.chg, mover.market);
 document.getElementById("callout").innerHTML = `
-  <div class="callout-inner ${{mover.chg>=0?'up-bg':'down-bg'}}">
+  <div class="callout-inner" style="background:linear-gradient(120deg, ${{moverColor}}22, ${{moverColor}}05 60%);">
     <div class="cb-left">
       <div class="cb-k">오늘의 대장주</div>
-      <div class="cb-ticker num">${{mover.t.replace('-USD','').replace('.KS','')}}</div>
       <div class="cb-name">${{mover.n}}</div>
-      <div class="cb-chg num ${{mover.chg>=0?'up':'down'}}">${{mover.chg>=0?'+':''}}${{mover.chg.toFixed(2)}}%</div>
+      <div class="cb-ticker num">${{mover.t.replace('-USD','').replace('.KS','')}}</div>
+      <div class="cb-chg num ${{dirClass(mover.chg, mover.market)}}">${{mover.chg>=0?'+':''}}${{mover.chg.toFixed(2)}}%</div>
       <p class="cb-desc">${{UNIVERSE.length}}개 종목 중 오늘 가장 크게 움직였어요.
       업종별로는 ${{bestSec.label}}(${{bestSec.chg_pct>=0?"+":""}}${{bestSec.chg_pct.toFixed(1)}}%)이 가장 강했고, ${{worstSec.label}}(${{worstSec.chg_pct>=0?"+":""}}${{worstSec.chg_pct.toFixed(1)}}%)은 가장 부진했어요.</p>
     </div>
     <canvas class="cb-chart" id="cb-chart"></canvas>
   </div>`;
-drawSpark(document.getElementById("cb-chart"), mover.bars.slice(-30).map(b=>b.c), mover.chg>=0?"#ff4d5e":"#4a90ff");
+drawSpark(document.getElementById("cb-chart"), mover.bars.slice(-30).map(b=>b.c), moverColor);
 
 // ---- 홈: 히트맵 (시가총액 크기 트리맵) ----
 function squarify(data, x, y, w, h){{
@@ -785,7 +805,7 @@ document.getElementById("search").addEventListener("input", (e) => {{ searchQ = 
 
 function filteredSorted(){{
   let arr = UNIVERSE.filter(s => marketFilter==="all" || s.market===marketFilter);
-  if(searchQ) arr = arr.filter(s => s.t.toLowerCase().includes(searchQ) || s.n.toLowerCase().includes(searchQ));
+  if(searchQ) arr = arr.filter(s => s.t.toLowerCase().includes(searchQ) || s.n.toLowerCase().includes(searchQ) || (s.alias && s.alias.toLowerCase().includes(searchQ)));
   arr = arr.slice();
   if(sortMode==="chgdesc") arr.sort((a,b)=>b.chg-a.chg);
   else if(sortMode==="chgasc") arr.sort((a,b)=>a.chg-b.chg);
@@ -817,7 +837,7 @@ function renderList(){{
       <div class="l"><span class="t">${{s.t.replace('-USD','').replace('.KS','')}}</span><span class="n">${{s.n}}</span></div>
       <canvas class="mini2" data-t2="${{s.t}}"></canvas>
       <div class="r"><div class="p num">${{s.market==='crypto'?'$':(s.market==='kr'?'₩':'$')}}${{s.price.toLocaleString(undefined,{{maximumFractionDigits:2}})}}</div>
-        <div class="c num ${{s.chg>=0?'up':'down'}}">${{s.chg>=0?'+':''}}${{s.chg.toFixed(1)}}%</div></div>
+        <div class="c num ${{dirClass(s.chg, s.market)}}">${{s.chg>=0?'+':''}}${{s.chg.toFixed(1)}}%</div></div>
     </div>`).join("");
   if(!arr.length){{ listPane.innerHTML = '<div style="padding:24px;color:var(--text-faint);">검색 결과가 없어요.</div>'; }}
   listPane.querySelectorAll(".list-item").forEach(el => {{
@@ -828,7 +848,7 @@ function renderList(){{
   }});
   listPane.querySelectorAll("canvas.mini2").forEach(cv => {{
     const s = UNIVERSE.find(x => x.t === cv.dataset.t2);
-    drawMiniInline(cv, s.bars.map(b=>b.c), s.chg>=0?"#ff4d5e":"#4a90ff");
+    drawMiniInline(cv, s.bars.map(b=>b.c), dirColor(s.chg, s.market));
   }});
   renderLeaderboard();
 }}
@@ -837,7 +857,7 @@ function renderLeaderboard(){{
   const arr = UNIVERSE.filter(s => marketFilter==="all" || s.market===marketFilter);
   const cell = s => `<div class="lb-item" data-t="${{s.t}}">
     <span><span class="t">${{s.t.replace('-USD','').replace('.KS','')}}</span><span class="n">${{s.n}}</span></span>
-    <span class="c num ${{s.chg>=0?'up':'down'}}">${{s.chg>=0?'+':''}}${{s.chg.toFixed(1)}}%</span>
+    <span class="c num ${{dirClass(s.chg, s.market)}}">${{s.chg>=0?'+':''}}${{s.chg.toFixed(1)}}%</span>
   </div>`;
   const gainers = arr.slice().sort((a,b)=>b.chg-a.chg).slice(0,5);
   const losers = arr.slice().sort((a,b)=>a.chg-b.chg).slice(0,5);
@@ -874,22 +894,22 @@ function drawCandles(bars, hoverIdx){{
   const pad = (hi-lo)*0.08 || hi*0.02;
   const vmin = lo-pad, vmax = hi+pad;
   const Y = v => h - ((v-vmin)/(vmax-vmin))*h;
-  ctx.strokeStyle = "rgba(255,255,255,.06)"; ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(20,22,30,.08)"; ctx.lineWidth = 1;
   for(let i=0;i<=3;i++){{ const y=(h/3)*i; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }}
   const n = bars.length, gap = w/n, bodyW = Math.max(gap*0.55, 1);
   bars.forEach((b,i) => {{
     const cx = gap*i + gap/2;
     const up = b.c >= b.o;
-    ctx.strokeStyle = ctx.fillStyle = up ? "#ff4d5e" : "#4a90ff";
+    ctx.strokeStyle = ctx.fillStyle = dirColor(up ? 1 : -1, current.market);
     ctx.lineWidth = 1.1;
     ctx.beginPath(); ctx.moveTo(cx, Y(b.h)); ctx.lineTo(cx, Y(b.l)); ctx.stroke();
     const top = Y(Math.max(b.o,b.c)), bot = Y(Math.min(b.o,b.c));
     ctx.fillRect(cx-bodyW/2, top, bodyW, Math.max(bot-top,1));
   }});
   const maSpecs = [
-    {{key:"ma20", period:20, color:"#ff8a3d"}},
-    {{key:"ma60", period:60, color:"#5fd0c2"}},
-    {{key:"ma120", period:120, color:"#b18cff"}},
+    {{key:"ma20", period:20, color:"#e8660c"}},
+    {{key:"ma60", period:60, color:"#0f9488"}},
+    {{key:"ma120", period:120, color:"#7c5cdb"}},
   ];
   const closes = bars.map(b=>b.c);
   maSpecs.forEach(spec => {{
@@ -904,10 +924,40 @@ function drawCandles(bars, hoverIdx){{
     }});
     if(started){{ ctx.strokeStyle = spec.color; ctx.lineWidth = 1.6; ctx.lineJoin = "round"; ctx.stroke(); }}
   }});
+  // 축 라벨: 왼쪽에 가격(Y), 아래쪽에 날짜(X) — 어디서부터 어디까지인지 감이 오도록
+  ctx.font = "11px ui-monospace, Consolas, monospace";
+  ctx.textBaseline = "middle";
+  for(let i=0;i<=3;i++){{
+    const y = (h/3)*i;
+    const val = vmax - (i/3)*(vmax-vmin);
+    const label = val.toLocaleString(undefined,{{maximumFractionDigits: val>=1000?0:2}});
+    const ty = i===0 ? y+9 : (i===3 ? y-7 : y);
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.fillRect(4, ty-8, tw+8, 15);
+    ctx.fillStyle = "#565f6e";
+    ctx.fillText(label, 8, ty);
+  }}
+  if(n > 1){{
+    ctx.textBaseline = "alphabetic";
+    const seen = new Set();
+    [0, Math.floor((n-1)/2), n-1].forEach(i => {{
+      if(seen.has(i) || !bars[i].d) return;
+      seen.add(i);
+      const cx = gap*i + gap/2;
+      const label = bars[i].d.slice(5);
+      const tw = ctx.measureText(label).width;
+      const tx = Math.max(2, Math.min(w-tw-2, cx - tw/2));
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      ctx.fillRect(tx-3, h-16, tw+6, 14);
+      ctx.fillStyle = "#565f6e";
+      ctx.fillText(label, tx, h-5);
+    }});
+  }}
   if(hoverIdx >= 0 && hoverIdx < n){{
     const cx = gap*hoverIdx + gap/2;
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,.35)";
+    ctx.strokeStyle = "rgba(20,22,30,.35)";
     ctx.lineWidth = 1;
     ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
@@ -931,7 +981,7 @@ function drawVolume(bars){{
   bars.forEach((b,i) => {{
     const cx = gap*i + gap/2;
     const up = b.c >= b.o;
-    ctx.fillStyle = up ? "rgba(255,77,94,.55)" : "rgba(74,144,255,.55)";
+    ctx.fillStyle = dirColor(up ? 1 : -1, current.market) + "8c";
     const bh = Math.max((vols[i]/vmax) * h, 1);
     ctx.fillRect(cx-bodyW/2, h-bh, bodyW, bh);
   }});
@@ -954,7 +1004,7 @@ function setView(start, count){{
   const rangeChg = ((lastBars[lastBars.length-1].c / lastBars[0].c) - 1) * 100;
   const rangeEl = document.getElementById("s-range");
   rangeEl.textContent = (rangeChg>=0?"+":"")+rangeChg.toFixed(1)+"%";
-  rangeEl.className = "v num " + (rangeChg>=0?"up":"down");
+  rangeEl.className = "v num " + dirClass(rangeChg, current.market);
   tipEl.style.display = "none";
   drawCandles(lastBars, -1);
   drawVolume(lastBars);
@@ -1043,10 +1093,28 @@ function renderChart(){{
   document.getElementById("c-price").textContent = unit + current.price.toLocaleString(undefined,{{maximumFractionDigits:2}});
   const chgEl = document.getElementById("c-chg");
   chgEl.textContent = (current.chg>=0?"+":"")+current.chg.toFixed(2)+"% 오늘";
-  chgEl.className = "chg num " + (current.chg>=0?"up":"down");
+  chgEl.className = "chg num " + dirClass(current.chg, current.market);
   document.getElementById("s-per").textContent = current.per ? current.per+"배" : "-";
   document.getElementById("s-div").textContent = current.div_yield ? current.div_yield+"%" : "-";
   document.getElementById("s-market").textContent = MARKET_LABEL[current.market];
+
+  const tags = [];
+  if(current.sector) tags.push(`<span class="tag-badge">${{current.sector}}</span>`);
+  if(current.industry && current.industry !== current.sector) tags.push(`<span class="tag-badge">${{current.industry}}</span>`);
+  if(current.dow30) tags.push(`<span class="tag-badge dow">다우지수 편입</span>`);
+  document.getElementById("c-tags").innerHTML = tags.join("");
+
+  const news = current.news || [];
+  const newsEl = document.getElementById("c-news");
+  if(news.length){{
+    newsEl.innerHTML = `<div class="k">관련 뉴스</div>` + news.map(a => {{
+      const inner = `<div class="title">${{a.title}}</div><div class="meta">${{a.provider}}${{a.date?' · '+a.date:''}}</div>`;
+      return a.link ? `<a class="news-item" href="${{a.link}}" target="_blank" rel="noopener">${{inner}}</a>` : `<div class="news-item">${{inner}}</div>`;
+    }}).join("");
+  }} else {{
+    newsEl.innerHTML = `<div class="k">관련 뉴스</div><div class="news-empty">가져올 수 있는 최신 뉴스가 없어요.</div>`;
+  }}
+
   resetView();
 }}
 
@@ -1059,7 +1127,7 @@ function fmtAum(v){{ return v!=null ? "$"+v.toLocaleString()+"B" : "정보 없�
 function renderEtfGrid(){{
   const arr = ETFS.filter(e => etfCatFilter==="all" || e.cat===etfCatFilter);
   document.getElementById("snap-grid").innerHTML = arr.map(e => {{
-    const dir = e.chg30 >= 0 ? "up" : "down";
+    const dir = dirClass(e.chg30, "us");
     const sign = e.chg30 >= 0 ? "+" : "";
     return `
       <div class="snap-card" data-t="${{e.t}}">
@@ -1079,7 +1147,7 @@ function renderEtfGrid(){{
   }}).join("");
   document.querySelectorAll("#snap-grid canvas.spark").forEach(cv => {{
     const e = ETFS.find(x => x.t === cv.dataset.t);
-    drawSpark(cv, e.spark, e.chg30 >= 0 ? "#ff4d5e" : "#4a90ff");
+    drawSpark(cv, e.spark, dirColor(e.chg30, "us"));
   }});
   document.querySelectorAll("#snap-grid .snap-card").forEach(card => {{
     card.addEventListener("click", () => openEtfModal(ETFS.find(x => x.t === card.dataset.t)));
